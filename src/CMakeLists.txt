@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION  3.22)
 
-add_library(networklib)
+add_executable(networklib)
 target_sources(networklib PRIVATE socket_raw.cpp)
 target_compile_features(networklib PRIVATE cxx_std_20)
 target_include_directories(networklib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
