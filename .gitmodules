@@ -1,0 +1,6 @@
+[submodule "submodule/Catch2"]
+	path = submodule/Catch2
+	url = https://github.com/catchorg/Catch2.git
+[submodule "submodule/googletest"]
+	path = submodule/googletest
+	url = https://github.com/google/googletest.git

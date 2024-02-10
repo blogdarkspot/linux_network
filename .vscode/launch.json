@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/src/networklib",
+            "program": "${workspaceFolder}/build/tests/socketRawTest",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

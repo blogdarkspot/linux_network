@@ -7,27 +7,23 @@
 #include <linux/types.h>
 #include <linux/if_packet.h>
 
+/**
+  * @brief This namespace contains the network protocols
+  * 
+  the internet protocol is referenced in rfc791 see https://datatracker.ietf.org/doc/html/rfc791
+  the tcp protocol is referenced in rfc9293 see https://datatracker.ietf.org/doc/html/rfc9293
+*/
 namespace io::network
 {
-struct ip_hdr
-{
-#if defined(__LITTLE_ENDIAN_BITFIELD)
-  std::uint8_t ihl : 4, version : 4;
-#elif defined(__BIG_ENDIAN_BITFIELD)
-  std::uint8_t version : 4, ihl : 4;
-#else
-#error "Please fix <asm/byteorder.h>"
-#endif
-  std::uint8_t tos;
-  std::uint16_t tot_len;
-  std::uint16_t id;
-  std::uint16_t frag_off;
-  std::uint8_t ttl;
-  std::uint8_t protocol;
-  std::uint16_t check;
-  std::uint32_t saddr;
-  std::uint32_t daddr;
-};
+
+
+
+constexpr std::uint32_t ipv4_class_a_network_mask = 0x7F000000;
+constexpr std::uint32_t ipv4_class_a_address_mask = 0x00FFFFFF;
+constexpr std::uint32_t ipv4_class_b_network_mask = 0x3FFF0000;
+constexpr std::uint32_t ipv4_class_b_address_mask = 0x0000FFFF;
+constexpr std::uint32_t ipv4_class_c_network_mask = 0xDFFFFF00;
+constexpr std::uint32_t ipv4_class_c_address_mask = 0x000000FF;
 
 struct eth_hdr
 {
