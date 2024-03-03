@@ -97,14 +97,39 @@ public:
       {
         return std::make_error_code (std::errc::invalid_argument);
       }
-    auto err = enable_timestamp (_M_write);
-    return err;
+    auto ret = setup_ring_buffer (_M_write, RingType::WRITE);
+    if (ret)
+      {
+        return ret;
+      }
+    ret = create_mmap (_M_write);
+    if (ret)
+      {
+        return ret;
+      }
+    return bind_to_interface (_M_write, __interface, 0x00);
+    // auto err = enable_timestamp (_M_write);
   }
 
   std::error_code
   init_read_socket_async (const std::string &__interface)
   {
     _M_is_running = true;
+
+    _M_read.fd = ::socket (PF_PACKET, SOCK_RAW, htons (AF_INET));
+    if (_M_read.fd == -1)
+      {
+        return std::make_error_code (std::errc::bad_file_descriptor);
+      }
+    if (setsockopt (_M_read.fd, SOL_PACKET, PACKET_VERSION,
+                    &(_M_read.packet_version),
+                    sizeof (_M_read.packet_version)))
+      {
+        return std::make_error_code (std::errc::invalid_argument);
+      }
+
+      setup_ring_buffer (_M_read, RingType::READ);
+      create_mmap(_M_read);
     _M_thread.reset (new std::thread ([&] () { read_async (); }));
     return std::error_code ();
   }
@@ -139,7 +164,7 @@ public:
     return payload;
   }
 
-  void
+  std::error_code 
   send (size_t __len)
   {
     // aqui segundo a documentação como estamos usando SOCK_DGRAM the phisycal
@@ -156,9 +181,10 @@ public:
     int ret = sendto (_M_write.fd, NULL, 0, 0, NULL, 0);
     if (ret == -1)
       {
-        // error to send
+        return std::error_code (errno, std::system_category ());
       }
     ++_M_write.buffer.current_pk;
+    return std::error_code();
   }
 
   void
@@ -187,15 +213,15 @@ private:
     auto f0 = ((char *)__ring.rd[0].iov_base) + (n * __ring.req.tp_frame_size);
     return f0;
   }
-  bool
-  bind_to_interface (_socket &__socket, const std::string &__interface)
+  std::error_code
+  bind_to_interface (_socket &__socket, const std::string &__interface, int __protocol = ETH_P_IP)
   {
     struct ifreq s_ifr;
     strcpy (s_ifr.ifr_ifrn.ifrn_name, __interface.c_str ());
     ioctl (__socket.fd, SIOCGIFINDEX, &s_ifr);
 
     __socket.addr.sll_family = AF_PACKET;
-    __socket.addr.sll_protocol = htons (ETH_P_IP);
+    __socket.addr.sll_protocol = htons (__protocol);
     __socket.addr.sll_ifindex
         = s_ifr.ifr_ifru.ifru_ivalue; // index of interface
     //_M_sock.addr.sll_pkttype = PACKET_UNICAST;
@@ -203,9 +229,9 @@ private:
     if (bind (__socket.fd, (struct sockaddr *)&(__socket.addr),
               sizeof (struct sockaddr_ll)))
       {
-        return false;
+        return std::error_code (errno, std::system_category ());
       }
-    return true;
+    return std::error_code();
   }
 
   int
@@ -232,20 +258,6 @@ private:
     return s_ifr.ifr_ifru.ifru_ivalue;
   }
 
-  std::error_code
-  enable_timestamp (const _socket &__socket) const
-  {
-    int req = SOF_TIMESTAMPING_TX_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE
-              | SOF_TIMESTAMPING_TX_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE
-              | SOF_TIMESTAMPING_RAW_HARDWARE;
-    if (setsockopt (__socket.fd, SOL_PACKET, SO_TIMESTAMPING, (void *)&req,
-                    sizeof (req)))
-      {
-        return std::make_error_code (std::errc::invalid_argument);
-      }
-    return std::error_code ();
-  }
-
   enum class RingType : std::int32_t
   {
     READ = PACKET_RX_RING,
@@ -260,7 +272,7 @@ private:
    * entao aqui vamos usar frames de 2046 já que as paginas geralmente são 4096
    * ou 8192 sendo assim podemos utilizar
    */
-  bool
+  std::error_code 
   setup_ring_buffer (_socket &__socket, const RingType __type)
   {
     constexpr std::uint32_t BlockSizeOder = 2;
@@ -270,11 +282,8 @@ private:
 
     memset (&__socket.buffer.req, 0x00, sizeof (__socket.buffer.req));
 
-    __socket.buffer.req.tp_retire_blk_tov = TimeoutMicro;
-    __socket.buffer.req.tp_sizeof_priv = OffSetPriv;
     __socket.buffer.req.tp_block_size = (getpagesize () << BlockSizeOder);
-    __socket.buffer.req.tp_frame_size
-        = __socket.buffer.req.tp_block_size / (1 << 2);
+    __socket.buffer.req.tp_frame_size = TPACKET_ALIGNMENT << 7;
     __socket.buffer.req.tp_block_nr = BlocksNumber;
     __socket.buffer.req.tp_frame_nr = __socket.buffer.req.tp_block_size
                                       / __socket.buffer.req.tp_frame_size
@@ -283,15 +292,17 @@ private:
     if (__type == RingType::READ)
       {
         __socket.buffer.req.tp_feature_req_word = TP_FT_REQ_FILL_RXHASH;
+        __socket.buffer.req.tp_retire_blk_tov = TimeoutMicro;
+        __socket.buffer.req.tp_sizeof_priv = OffSetPriv;
       }
 
     if (setsockopt (
             __socket.fd, SOL_PACKET, static_cast<std::int32_t> (__type),
             (void *)&(__socket.buffer.req), sizeof (__socket.buffer.req)))
       {
-        return false;
+        return std::error_code (errno, std::system_category ());
       }
-    return true;
+    return std::error_code();
   }
 
   /**
@@ -300,7 +311,7 @@ private:
    * após isso mapeamos cada um dos blocos na estrutura
    * iovec sequencialmente a partir do inicio  do mapa alocado
    */
-  void
+  std::error_code
   create_mmap (_socket &__socket)
   {
     __socket.buffer.map = static_cast<uint8_t *> (mmap (
@@ -309,7 +320,7 @@ private:
         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_LOCKED, __socket.fd, 0));
     if (__socket.buffer.map == MAP_FAILED)
       {
-        return;
+        return std::error_code (errno, std::system_category ());
       }
     __socket.buffer.rd = static_cast<iovec *> (malloc (
         __socket.buffer.req.tp_block_nr * sizeof (*__socket.buffer.rd)));
@@ -319,6 +330,7 @@ private:
             = __socket.buffer.map + (i * __socket.buffer.req.tp_block_size);
         __socket.buffer.rd[i].iov_len = __socket.buffer.req.tp_block_size;
       }
+      return std::error_code();
   }
 
   void
@@ -388,7 +400,7 @@ private:
     sockaddr_ll *src_addr
         = (sockaddr_ll *)((uint8_t *)ppd + sizeof (tpacket3_hdr));
 
-    if(src_addr->sll_pkttype == PACKET_HOST || (src_addr->sll_pkttype == PACKET_OUTGOING && _M_loopback))
+ //   if(src_addr->sll_pkttype == PACKET_HOST || (src_addr->sll_pkttype == PACKET_OUTGOING && _M_loopback))
     {
         _M_output((const char*)((uint8_t *)ppd + ppd->tp_mac), (ppd->tp_len - ppd->tp_mac));
     }

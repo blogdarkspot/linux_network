@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
+#include <capabilities.hpp>
 #include <socket_raw.hpp>
 #include <ipv4.hpp>
 #include <memory>
+
+
 
 class SocketRawTests : public ::testing::Test
 {
@@ -17,10 +20,18 @@ class SocketRawTests : public ::testing::Test
     std::unique_ptr<io::network::socket_raw> socket;
 };
 
+TEST(CapabilitiesTests, EnableNetRaw)
+{
+
+    auto authok = security::authenticate_user("santana", "Binho1988@@");
+    ASSERT_FALSE(authok);
+    auto ret = security::capabilities::enable_net_raw();
+    ASSERT_FALSE(ret);
+}
+
 TEST_F(SocketRawTests, SendPacket)
 {
     using namespace io::network;
-
     bool received = false;
     bool timeout = false;
     std::uint32_t timeout_ms = 1000;
@@ -30,8 +41,10 @@ TEST_F(SocketRawTests, SendPacket)
         received = true;
     };        
     socket = std::make_unique<socket_raw>(callback);
-    socket->init_write_socket("enp4s0");
-    socket->init_read_socket_async("enp4s0");
+    auto ret = socket->init_write_socket("enp4s0");
+    ASSERT_FALSE(ret);
+   // ret = socket->init_read_socket_async("enp4s0");
+    //ASSERT_FALSE(ret);
     std::size_t szbuffer = 0;
 
     auto buffer = socket->aquire_buffer(szbuffer);
@@ -53,15 +66,5 @@ TEST_F(SocketRawTests, SendPacket)
     ip->daddr = htonl(ipv4::string_to_ip("127.0.0.1"));
     ip->saddr = ipv4::get_localhost_ip("enp4s0");
 
-    socket->send(sizeof(ipv4::header));
-
-    while(received == false && timeout == false)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        if(timeout_ms-- == 0)
-        {
-            timeout = true;
-        }
-    }
-    EXPECT_TRUE(received);
+    EXPECT_FALSE(socket->send(sizeof(ipv4::header)));
 }

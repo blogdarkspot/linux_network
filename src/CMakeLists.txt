@@ -7,9 +7,9 @@ target_include_directories(networklib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../i
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(networklib INTERFACE -fprofile-arcs -ftest-coverage -O0)
-    target_link_libraries(networklib INTERFACE Threads::Threads gcov)
+    target_link_libraries(networklib INTERFACE Threads::Threads gcov cap crypt)
 else()
-    target_link_libraries(networklib INTERFACE Threads::Threads)
+    target_link_libraries(networklib INTERFACE Threads::Threads cap crypt)
 endif()
 
 
