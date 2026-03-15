@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/CMakeFiles/libcap-populate"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/CMakeFiles/libcap-populate.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/CMakeFiles/libcap-populate-complete.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-build.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-configure.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-download.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-install.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-patch_disconnected.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-test.rule"
+		},
+		{
+			"file" : "/home/fsilva/work/linux_network/build_fc/_deps/libcap-subbuild/libcap-populate-prefix/src/libcap-populate-stamp/libcap-populate-update_disconnected.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"libcap-populate"
+		],
+		"name" : "libcap-populate"
+	}
+}
